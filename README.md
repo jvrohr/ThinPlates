@@ -1,2 +1,4 @@
 # ThinPlates
-Solving some problems in thin plate theory using Python
+Solving some examples from Plates and shells theory and analysis, Urugal (2018) with Python.
+
+:)
