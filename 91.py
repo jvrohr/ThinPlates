@@ -5,24 +5,11 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from matplotlib import cm
+import materials as mat
 
 # Constantes
 xnum = 100
 ynum = 100
-
-
-class material:
-    """Cria a classe material para guardar os dados do material."""
-
-    def __init__(self, v, E, G=0):
-        """Método de inicialização da classe de material."""
-        self.v = v
-        self.E = E
-        if G == 0:
-            self.G = E/(2*(1+v))
-        else:
-            self.G = G
-
 
 class plate:
     """Cria a classe da placa."""
@@ -115,8 +102,7 @@ a = 1
 b = 1
 
 # Cria o material e a placa
-aco = material(45e9, 0.3)
-myPlate = plate(a, b, 0.01, aco)
+myPlate = plate(a, b, 0.01, mat.Al6061)
 
 # Parte principal
 X = np.linspace(0, a, xnum)
