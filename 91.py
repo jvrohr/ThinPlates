@@ -184,8 +184,8 @@ w, m_conv, n_conv = myPlate.analysis(p0, N0, M_MAX, N_MAX, relError=5e-4,
 plt.figure('Convergencia1')
 plt.savefig(figDirectory + '\\91_convergencia1.png')
 plt.figure('Convergencia2')
-plt.savefig(figDirectory + '\\91_convergencia2.png')
 plt.legend(loc='upper right')
+plt.savefig(figDirectory + '\\91_convergencia2.png')
 
 Z = np.ndarray(shape=(xnum, ynum), dtype=float, order='F')
 for i in range(xnum):
@@ -215,7 +215,10 @@ for i in range(len(Npor)):
                                          converGraphLegend=legendName)
     W[i] = w(P_aval[0], P_aval[1])
 plt.legend(loc='upper right')
-plt.savefig(figDirectory + '\\91_convergenciaN.png')
+plt.figure('ConvergenciaN1')
+plt.savefig(figDirectory + '\\91_convergenciaN1.png')
+plt.figure('ConvergenciaN2')
+plt.savefig(figDirectory + '\\91_convergenciaN2.png')
 
 # --------------------- VARIAÇÃO DA CARGA DISTRIBUIDA N ---------------------
 print('Iniciando análise da variação da carga N.')
