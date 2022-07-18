@@ -1,4 +1,4 @@
-"""Programa para resolução do exercício 9.1 do livro."""
+"""Programa para resolução do exercício 5.1 do livro."""
 
 # Importações
 import matplotlib.pyplot as plt
@@ -18,85 +18,61 @@ class plate:
         self.t = t
         self.D = (material.E*t**3)/(1*(1-material.v**2))
 
-    def
     def analysis(self, p, m_max_evaluation, n_max_evaluation,
-                 converGraph=False, relError=5e-2, evaluationPoint,
-                 typeOfAnalysis='together', printProcess=False,
-                 folderName='fig', converGraphColor='b',
-                 converGraphName='Convergencia', converGraphLegend=None):
-        """Cria a função para a análise da deflexão da placa."""
-        print('Iniciando a análise para a placa.')
+                 evaluationPoint, converGraph=False, relError=5e-2,
+                 printProcess=False, folderName='fig', converGraphColor='b',
+                 converGraphName='Convergência', converGraphLegend=None):
 
-        wEval = np.ndarray(shape=m_max_evaluation+1, dtype=float)
-        if typeOfAnalysis == 'together':
-            w = self.functionAnalysis(p0, N, 1, 1)
-            wEval[0] = w(evaluationPoint[0], evaluationPoint[1])
+                 w = self.functionAnalysis(p, m_max_evalutation,
+                                            n_max_evaluation, 100, 'w')
 
-            E_MAX = 0
-            k = 1
-            mn_values = np.array(range(int((m_max_evaluation+1)/2)))*2 + 1
-            print('\tBusca por convergência para Er = {}'.format(relError))
-            if printProcess:
-                print('\tm = n =  1 \t', end='')
-                print('Nov aval: {:7.4}'.format((wEval[0])), end='')
-                print(' Aval ant:    -    Erro:     -')
-            for e_MAX in mn_values[1:-1]:
-                w = self.functionAnalysis(p0, N, e_MAX, e_MAX)
-                wEval[k] = w(p[0], p[1])
-                new_Error = abs((wEval[k] - wEval[k-1])/wEval[k-1])
-                if printProcess:
-                    print('\tm = n = {:2} \t'.format(e_MAX), end='')
-                    print('Nov aval: {:7.4}'.format((wEval[k])), end='')
-                    print(' Aval ant: {:7.4}'.format((wEval[k-1])), end='')
-                    print(' Erro: {:7.4}'.format(new_Error))
-                if new_Error < relError:
-                    E_MAX = e_MAX
-                    print('\tConvergência em m = n = {}.\n'.format(E_MAX))
-                    break
-                if e_MAX == m_max_evaluation:
-                    print('Não foi alcaçada convergência')
-                    return 0, 0
-                k += 1
+                 error_w = [w(evaluationPoint[0], evaluationPoint[1])]
+                 
+                 return w, mx, my, mxy, Qx, Qy, Rx, Ry
 
-            if converGraph:
-                plt.figure(converGraphName)
-                if converGraphLegend is None:
-                    plt.plot(mn_values[0:k+1], 1e3*wEval[0:k+1], linewidth=1.5,
-                             color=converGraphColor)
-                else:
-                    plt.plot(mn_values[0:k+1], 1e3*wEval[0:k+1], linewidth=1.5,
-                             color=converGraphColor, label=converGraphLegend)
-
-                plt.xlabel(r'$m_{max} = n_{max}$')
-                plt.ylabel('Deflexão [mm]')
-                plt.grid(b=True, which='minor', color='gray', linestyle='-',
-                         linewidth=0.1)
-                plt.grid(b=True, which='major', color='gray', linestyle='-',
-                         linewidth=0.1)
-                plt.minorticks_on()
-
-            return self.functionAnalysis(p0, N, e_MAX, e_MAX), e_MAX, e_MAX
-
-    def functionAnalysis(self, p0, N, m_max, n_max):
-        """Cria uma função para analisar a deflexão para dada condição."""
-        if not m_max % 2 or not n_max % 2:
-            print('Erro: os valores precisam ser números inteiros ímpares.')
+    def functionAnalysis(self, p, m_max, n_max, num_int, interestFunction):
+        """Cria uma função para analisar a deflexção para dada condição."""
 
         def w(x, y):
             """Função deslocamento transversal."""
             # Resolução principal do problema
             sum = 0
-            for m in np.array(range(int((m_max+1)/2)))*2 + 1:
-                for n in np.array(range(int((n_max+1)/2)))*2 + 1:
+            for m in range(1, m_max+1):
+                for n in range(1, n_max+1):
+                    sum_Qmn = 0
+                    for i in range(num_int+1):
+                        for j in range(num_int+1):
+                            sum_Qmn += p.subs([(x_s, self.a*i/num_int), \
+                            (y_s, self.b*j/num_int)])*sin(m*np.pi*i/num_int)* \
+                            sin(n*np.pi*j/num_int)
+                    Qmn = 4*sum_Qmn/(self.a*self.b)
                     num = np.sin(np.pi*m*x/self.a) * \
-                        np.sin(np.pi*n*y/self.b)
-                    den = m*n*(((m/self.a)**2 + (n/self.b)**2)**2 +
-                               (N/self.D)*(m/(np.pi*self.a))**2)
+                        np.sin(np.pi*n*y/self.b) * Qmn
+                    den = ((m**2)/(self.a)**2 + (n**2)/(self.b**2))**2
                     sum += num/den
+            return sum/((np.pi**4)*self.D)
 
-            return sum*16*p0/((np.pi**6)*self.D)
+        def m(w_all):
 
-        return w
+            return 0
+
+        def Q(mx, my, mxy):
+
+            return 0
+
+        def R(x, y):
+
+            return 0
+
+        if interestFunction == 'w':
+            func = w
+        elif interestFunction == 'm':
+            func = m
+        elif interestFunction == 'Q':
+            func = Q
+        elif interestFunction == 'R':
+            func = R
+        return func
 
 
 def makeFolder(name):
@@ -137,9 +113,9 @@ makeFolder(figDirectory)
 X = np.linspace(0, a, xnum)
 Y = np.linspace(0, b, ynum)
 X, Y = np.meshgrid(X, Y)
-w, m_conv, n_conv = myPlate.analysis(p, M_MAX, N_MAX, relError=5e-2,
+w, m_conv, n_conv = myPlate.analysis(p, M_MAX, N_MAX, relError=5e-2, P_aval
                                      converGraph=True, printProcess=True,
-                                     evaluationPoint=P_aval)
+                                     foldername = figDirectory)
 plt.savefig(figDirectory + '\\91_convergencia.png')
 Z = np.ndarray(shape=(xnum, ynum), dtype=float, order='F')
 for i in range(xnum):
