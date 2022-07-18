@@ -73,14 +73,15 @@ class plate:
 
                 plt.figure(converGraphName + '1')
                 if converGraphLegend is None:
-                    plt.plot(mn_values[0:k+1], 1e3*wEval[0:k+1],
+                    plt.plot(mn_values[0:k+1], (1/wEval[k])*wEval[0:k+1], 'o-',
                              linewidth=1.5, color=converGraphColor)
                 else:
-                    plt.plot(mn_values[0:k+1], 1e3*wEval[0:k+1], linewidth=1.5,
-                             color=converGraphColor, label=converGraphLegend)
+                    plt.plot(mn_values[0:k+1], (1/wEval[k])*wEval[0:k+1], 'o-',
+                             linewidth=1.5, color=converGraphColor,
+                             label=converGraphLegend)
 
                 plt.xlabel('$m_{max}$ = $n_{max}$')
-                plt.ylabel('Deflexão $w$ [mm]')
+                plt.ylabel('Deflexão $w$')
                 plt.grid(b=True, which='minor', color='gray', linestyle='-',
                          linewidth=0.1)
                 plt.grid(b=True, which='major', color='gray', linestyle='-',
@@ -106,7 +107,7 @@ class plate:
                                   100), *popt), converGraphColor + '--')
 
                 plt.xlabel('$m_{max}$ = $n_{max}$')
-                plt.ylabel('Deflexão [mm]')
+                plt.ylabel('Erro')
                 plt.grid(b=True, which='minor', color='gray', linestyle='-',
                          linewidth=0.1)
                 plt.grid(b=True, which='major', color='gray', linestyle='-',
