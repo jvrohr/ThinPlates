@@ -214,10 +214,11 @@ for i in range(len(Npor)):
                                          converGraphName='ConvergenciaN',
                                          converGraphLegend=legendName)
     W[i] = w(P_aval[0], P_aval[1])
-plt.legend(loc='upper right')
 plt.figure('ConvergenciaN1')
+plt.legend(loc='upper right')
 plt.savefig(figDirectory + '\\91_convergenciaN1.png')
 plt.figure('ConvergenciaN2')
+plt.legend(loc='upper right')
 plt.savefig(figDirectory + '\\91_convergenciaN2.png')
 
 # --------------------- VARIAÇÃO DA CARGA DISTRIBUIDA N ---------------------
