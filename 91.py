@@ -19,11 +19,12 @@ class plate:
         self.t = t
         self.D = (material.E*t**3)/(1*(1-material.v**2))
 
-    def analysis(self, p0, N, m_max_evaluation, n_max_evaluation,
-                 converGraph=False, relError=5e-2, pointType='center',
-                 evaluationPoint=[0, 0], typeOfAnalysis='together',
-                 printProcess=False, folderName='fig', converGraphColor='b',
-                 converGraphName='Convergencia', converGraphLegend=None):
+    def analysisTogether(self, p0, N, max_evaluation=100, converGraph=False,
+                         relError=5e-2, pointType='center',
+                         evaluationPoint=[0, 0], printProcess=False,
+                         folderName='fig', converGraphColor='b',
+                         converGraphName='Convergencia',
+                         converGraphLegend=None):
         """Cria a função para a análise da deflexão da placa."""
         print('Iniciando a análise para a placa.')
 
@@ -35,86 +36,203 @@ class plate:
             print('O valor para pointType ({}) não está definido'
                   .format(evaluationPoint))
 
-        wEval = np.ndarray(shape=m_max_evaluation+1, dtype=float)
-        if typeOfAnalysis == 'together':
-            w = self.functionAnalysis(p0, N, 1, 1)
-            wEval[0] = w(p[0], p[1])
-            error = np.ndarray(shape=m_max_evaluation)
+        wEval = np.ndarray(shape=max_evaluation+1, dtype=float)
 
-            E_MAX = 0
-            k = 1
-            mn_values = np.array(range(int((m_max_evaluation+1)/2)))*2 + 1
-            print('\tBusca por convergência para Er = {}'.format(relError))
+        w = self.functionAnalysis(p0, N, 1, 1)
+        wEval[0] = w(p[0], p[1])
+        error = np.ndarray(shape=max_evaluation)
+
+        E_MAX = 0
+        k = 1
+        mn_values = np.array(range(int((max_evaluation+1)/2)))*2 + 1
+        print('\tBusca por convergência para Er = {}'.format(relError))
+        if printProcess:
+            print('\tm = n =  1 \t', end='')
+            print('Nov aval: {:7.4}'.format((wEval[0])), end='')
+            print(' Aval ant:    -    Erro:     -')
+        for e_MAX in mn_values[1:-1]:
+            w = self.functionAnalysis(p0, N, e_MAX, e_MAX)
+            wEval[k] = w(p[0], p[1])
+            error[k-1] = abs((wEval[k] - wEval[k-1])/wEval[k-1])
             if printProcess:
-                print('\tm = n =  1 \t', end='')
-                print('Nov aval: {:7.4}'.format((wEval[0])), end='')
-                print(' Aval ant:    -    Erro:     -')
-            for e_MAX in mn_values[1:-1]:
-                w = self.functionAnalysis(p0, N, e_MAX, e_MAX)
-                wEval[k] = w(p[0], p[1])
-                error[k-1] = abs((wEval[k] - wEval[k-1])/wEval[k-1])
-                if printProcess:
-                    print('\tm = n = {:2} \t'.format(e_MAX), end='')
-                    print('Nov aval: {:7.4}'.format((wEval[k])), end='')
-                    print(' Aval ant: {:7.4}'.format((wEval[k-1])), end='')
-                    print(' Erro: {:7.4}'.format(error[k-1]))
-                if error[k-1] < relError:
-                    E_MAX = e_MAX
-                    print('\tConvergência em m = n = {}.\n'.format(E_MAX))
-                    break
-                if e_MAX == m_max_evaluation:
-                    print('Não foi alcaçada convergência')
-                    return 0, 0
-                k += 1
+                print('\tm = n = {:2} \t'.format(e_MAX), end='')
+                print('Nov aval: {:7.4}'.format((wEval[k])), end='')
+                print(' Aval ant: {:7.4}'.format((wEval[k-1])), end='')
+                print(' Erro: {:7.4}'.format(error[k-1]))
+            if error[k-1] < relError:
+                E_MAX = e_MAX
+                print('\tConvergência em m = n = {}.\n'.format(E_MAX))
+                break
+            if e_MAX == max_evaluation:
+                print('Não foi alcaçada convergência')
+                return 0, 0
+            k += 1
 
-            if converGraph:
-                def func(x, a, b):
-                    return a * np.exp(-b * x)
+        if converGraph:
+            def func(x, a, b):
+                return a * np.exp(-b * x)
 
-                plt.figure(converGraphName + '1')
-                if converGraphLegend is None:
-                    plt.plot(mn_values[0:k+1], (1/wEval[k])*wEval[0:k+1], 'o-',
-                             linewidth=1.5, color=converGraphColor)
+            plt.figure(converGraphName + '1')
+            if converGraphLegend is None:
+                plt.plot(mn_values[0:k+1], (1/wEval[k])*wEval[0:k+1], 'o-',
+                         linewidth=1.5, color=converGraphColor)
+            else:
+                plt.plot(mn_values[0:k+1], (1/wEval[k])*wEval[0:k+1], 'o-',
+                         linewidth=1.5, color=converGraphColor,
+                         label=converGraphLegend)
+
+            plt.xlabel('$m_{max} = n_{max}$')
+            plt.ylabel('Deflexão $w$')
+            plt.grid(b=True, which='minor', color='gray', linestyle='-',
+                     linewidth=0.1)
+            plt.grid(b=True, which='major', color='gray', linestyle='-',
+                     linewidth=0.1)
+            plt.minorticks_on()
+
+            plt.figure(converGraphName + '2')
+            if converGraphLegend is None:
+                plt.plot(mn_values[1:k+1], error[0:k], 'o',
+                         linewidth=1.5, color=converGraphColor,
+                         label='Erros nas iterações')
+                popt, pcov = curve_fit(func, mn_values[1:k+1], error[0:k])
+                plt.plot(np.linspace(mn_values[1], mn_values[k+1], 100),
+                         func(np.linspace(mn_values[1], mn_values[k+1],
+                              100), *popt), 'k--',
+                         label='Ajuste de curva')
+            else:
+                plt.plot(mn_values[1:k+1], error[0:k], 'o', linewidth=1.5,
+                         color=converGraphColor, label=converGraphLegend)
+                popt, pcov = curve_fit(func, mn_values[1:k+1], error[0:k])
+                plt.plot(np.linspace(mn_values[1], mn_values[k+1], 100),
+                         func(np.linspace(mn_values[1], mn_values[k+1],
+                              100), *popt), converGraphColor + '--')
+
+            plt.xlabel('$m_{max}$ = $n_{max}$')
+            plt.ylabel('Erro')
+            plt.grid(b=True, which='minor', color='gray', linestyle='-',
+                     linewidth=0.1)
+            plt.grid(b=True, which='major', color='gray', linestyle='-',
+                     linewidth=0.1)
+            plt.minorticks_on()
+
+        return self.functionAnalysis(p0, N, e_MAX, e_MAX), e_MAX, e_MAX
+
+    def analysisSepareted(self, p0, N, max_evaluation=100, converGraph=False,
+                          relError=5e-2, pointType='center',
+                          typeOfAnalysis='m', evaluationPoint=[0, 0],
+                          evaluationFixed='m', printProcess=False,
+                          olderName='fig', converGraphColor='b',
+                          converGraphName='Convergencia',
+                          converGraphLegend=None):
+        """Cria a função para a análise da deflexão da placa."""
+        print('Iniciando a análise para a placa.')
+
+        if pointType == 'center':
+            p = [self.a/2, self.b/2]
+        elif pointType == 'other':
+            p = evaluationPoint
+        else:
+            print('O valor para pointType ({}) não está definido'
+                  .format(evaluationPoint))
+
+        wEval = np.ndarray(shape=max_evaluation+1, dtype=float)
+
+        w = self.functionAnalysis(p0, N, 1, 1)
+        wEval[0] = w(p[0], p[1])
+        error = np.ndarray(shape=max_evaluation)
+
+        E_MAX = 0
+        k = 1
+        mn_values = np.array(range(int((max_evaluation+1)/2)))*2 + 1
+        print('\tBusca por convergência para Er = {}'.format(relError), end='')
+        if typeOfAnalysis == 'm':
+            print(' (n = {})'.format(evaluationFixed))
+        elif typeOfAnalysis == 'n':
+            print(' (m = {})'.format(evaluationFixed))
+        else:
+            print('A opção typeOfAnalysis deve ser m ou n.')
+
+        if printProcess:
+            print('\t{} =  1 \t'.format(typeOfAnalysis), end='')
+            print('Nov aval: {:7.4}'.format((wEval[0])), end='')
+            print(' Aval ant:    -    Erro:     -')
+        for e_MAX in mn_values[1:-1]:
+            if typeOfAnalysis == 'm':
+                w = self.functionAnalysis(p0, N, e_MAX, evaluationFixed)
+            elif typeOfAnalysis == 'n':
+                w = self.functionAnalysis(p0, N, evaluationFixed, e_MAX)
+            wEval[k] = w(p[0], p[1])
+            error[k-1] = abs((wEval[k] - wEval[k-1])/wEval[k-1])
+            if printProcess:
+                if typeOfAnalysis == 'm':
+                    print('\tm = {:2} \t'.format(e_MAX), end='')
                 else:
-                    plt.plot(mn_values[0:k+1], (1/wEval[k])*wEval[0:k+1], 'o-',
-                             linewidth=1.5, color=converGraphColor,
-                             label=converGraphLegend)
-
-                plt.xlabel('$m_{max}$ = $n_{max}$')
-                plt.ylabel('Deflexão $w$')
-                plt.grid(b=True, which='minor', color='gray', linestyle='-',
-                         linewidth=0.1)
-                plt.grid(b=True, which='major', color='gray', linestyle='-',
-                         linewidth=0.1)
-                plt.minorticks_on()
-
-                plt.figure(converGraphName + '2')
-                if converGraphLegend is None:
-                    plt.plot(mn_values[1:k+1], error[0:k], 'o',
-                             linewidth=1.5, color=converGraphColor,
-                             label='Erros nas iterações')
-                    popt, pcov = curve_fit(func, mn_values[1:k+1], error[0:k])
-                    plt.plot(np.linspace(mn_values[1], mn_values[k+1], 100),
-                             func(np.linspace(mn_values[1], mn_values[k+1],
-                                  100), *popt), 'k--',
-                             label='Ajuste de curva')
+                    print('\tn = {:2} \t'.format(e_MAX), end='')
+                print('Nov aval: {:7.4}'.format((wEval[k])), end='')
+                print(' Aval ant: {:7.4}'.format((wEval[k-1])), end='')
+                print(' Erro: {:7.4}'.format(error[k-1]))
+            if error[k-1] < relError:
+                E_MAX = e_MAX
+                if typeOfAnalysis == 'm':
+                    print('\tConvergência em m = {}.\n'.format(E_MAX))
                 else:
-                    plt.plot(mn_values[1:k+1], error[0:k], 'o', linewidth=1.5,
-                             color=converGraphColor, label=converGraphLegend)
-                    popt, pcov = curve_fit(func, mn_values[1:k+1], error[0:k])
-                    plt.plot(np.linspace(mn_values[1], mn_values[k+1], 100),
-                             func(np.linspace(mn_values[1], mn_values[k+1],
-                                  100), *popt), converGraphColor + '--')
+                    print('\tConvergência em n = {}.\n'.format(E_MAX))
+                break
+            if e_MAX == max_evaluation:
+                print('Não foi alcaçada convergência')
+                return 0, 0
+            k += 1
 
-                plt.xlabel('$m_{max}$ = $n_{max}$')
-                plt.ylabel('Erro')
-                plt.grid(b=True, which='minor', color='gray', linestyle='-',
-                         linewidth=0.1)
-                plt.grid(b=True, which='major', color='gray', linestyle='-',
-                         linewidth=0.1)
-                plt.minorticks_on()
+        if converGraph:
+            def func(x, a, b):
+                return a * np.exp(-b * x)
 
-            return self.functionAnalysis(p0, N, e_MAX, e_MAX), e_MAX, e_MAX
+            plt.figure(converGraphName + '1')
+            if converGraphLegend is None:
+                plt.plot(mn_values[0:k+1], wEval[0:k+1], 'o-',
+                         linewidth=1.5, color=converGraphColor)
+            else:
+                plt.plot(mn_values[0:k+1], wEval[0:k+1], 'o-',
+                         linewidth=1.5, color=converGraphColor,
+                         label=converGraphLegend)
+            if typeOfAnalysis == 'm':
+                plt.xlabel('$n_{max}$')
+            else:
+                plt.xlabel('$m_{max}$')
+            plt.ylabel('Deflexão $w$')
+            plt.grid(b=True, which='minor', color='gray', linestyle='-',
+                     linewidth=0.1)
+            plt.grid(b=True, which='major', color='gray', linestyle='-',
+                     linewidth=0.1)
+            plt.minorticks_on()
+
+            plt.figure(converGraphName + '2')
+            if converGraphLegend is None:
+                plt.plot(mn_values[1:k+1], error[0:k], 'o',
+                         linewidth=1.5, color=converGraphColor,
+                         label='Erros nas iterações')
+                popt, pcov = curve_fit(func, mn_values[1:k+1], error[0:k])
+                plt.plot(np.linspace(mn_values[1], mn_values[k+1], 100),
+                         func(np.linspace(mn_values[1], mn_values[k+1],
+                              100), *popt), 'k--',
+                         label='Ajuste de curva')
+            else:
+                plt.plot(mn_values[1:k+1], error[0:k], 'o', linewidth=1.5,
+                         color=converGraphColor, label=converGraphLegend)
+                popt, pcov = curve_fit(func, mn_values[1:k+1], error[0:k])
+                plt.plot(np.linspace(mn_values[1], mn_values[k+1], 100),
+                         func(np.linspace(mn_values[1], mn_values[k+1],
+                              100), *popt), converGraphColor + '--')
+
+            plt.xlabel('$m_{max}$ = $n_{max}$')
+            plt.ylabel('Erro')
+            plt.grid(b=True, which='minor', color='gray', linestyle='-',
+                     linewidth=0.1)
+            plt.grid(b=True, which='major', color='gray', linestyle='-',
+                     linewidth=0.1)
+            plt.minorticks_on()
+
+        return self.functionAnalysis(p0, N, e_MAX, e_MAX), e_MAX, e_MAX
 
     def functionAnalysis(self, p0, N, m_max, n_max):
         """Cria uma função para analisar a deflexção para dada condição."""
@@ -154,9 +272,10 @@ p0 = 400e3  # [N/m²] Carga transversal distribuída sob a placa
 N0 = 500e3  # [N/m] Carga lateral distribuída sob a placa
 xnum = 100  # Quantidade de pontos em x
 ynum = 100  # Quantidade de pontos em y
-M_MAX = 100  # Número máximo de avaliações de m para a convergência
-N_MAX = 100  # Número máximo de avaliações de n para a convergência
+E_MAX = 100  # Número máximo de avaliações de m e n para a convergência
 P_aval = [a/2, b/2]  # Ponto para avaliar as deflexões (convergência e outros)
+m_values = [1, 3, 5, 7, 9, 11, 13, 15]
+n_values = [1, 3, 5, 7, 9, 11, 13, 15]
 
 pointsN = 100  # Quantidade de pontos para a análise da variação de N
 Nstart = -1e6  # Valor inicial do intervalo de N para a análise
@@ -179,14 +298,18 @@ makeFolder(figDirectory)
 X = np.linspace(0, a, xnum)
 Y = np.linspace(0, b, ynum)
 X, Y = np.meshgrid(X, Y)
-w, m_conv, n_conv = myPlate.analysis(p0, N0, M_MAX, N_MAX, relError=5e-4,
-                                     converGraph=True, printProcess=True,
-                                     evaluationPoint=P_aval)
+w, m_conv, n_conv = myPlate.analysisTogether(p0, N0, E_MAX,
+                                             relError=5e-3,
+                                             converGraph=True,
+                                             printProcess=True,
+                                             evaluationPoint=P_aval)
 plt.figure('Convergencia1')
 plt.savefig(figDirectory + '\\91_convergencia1.png')
+plt.close()
 plt.figure('Convergencia2')
 plt.legend(loc='upper right')
 plt.savefig(figDirectory + '\\91_convergencia2.png')
+plt.close()
 
 Z = np.ndarray(shape=(xnum, ynum), dtype=float, order='F')
 for i in range(xnum):
@@ -202,32 +325,34 @@ plt.xlabel('Eixo x [m]')
 plt.ylabel('Eixo y [m]')
 ax.set_zlabel('Deflexão $w$ [mm]')
 plt.savefig(figDirectory + '\\91_deflexao3D.png')
+plt.close()
 
 # ------------- VARIAÇÃO DA CARGA DISTRIBUIDA N NA CONVERGÊNCIA -------------
 N_new = [N0*i for i in Npor]
 W = np.ndarray(shape=len(Npor))
 for i in range(len(Npor)):
     legendName = str(Npor[i]) + ' $N_0$'
-    w, m_conv, n_conv = myPlate.analysis(p0, N_new[i], M_MAX, N_MAX,
-                                         converGraph=True,
-                                         relError=5e-4,
-                                         converGraphColor=colors[i],
-                                         converGraphName='ConvergenciaN',
-                                         converGraphLegend=legendName)
+    w, m_conv, n_conv = myPlate.analysisTogether(p0, N_new[i], E_MAX,
+                                                 converGraph=True,
+                                                 relError=5e-4,
+                                                 converGraphColor=colors[i],
+                                                 converGraphName='ConvN',
+                                                 converGraphLegend=legendName)
     W[i] = w(P_aval[0], P_aval[1])
-plt.figure('ConvergenciaN1')
+plt.figure('ConvN1')
 plt.legend(loc='upper right')
 plt.savefig(figDirectory + '\\91_convergenciaN1.png')
-plt.figure('ConvergenciaN2')
+plt.close()
+plt.figure('ConvN2')
 plt.legend(loc='upper right')
 plt.savefig(figDirectory + '\\91_convergenciaN2.png')
-
+plt.close()
 # --------------------- VARIAÇÃO DA CARGA DISTRIBUIDA N ---------------------
 print('Iniciando análise da variação da carga N.')
 N_new = np.linspace(Nstart, Nend, pointsN)
 W = np.ndarray(shape=pointsN)
 for i in range(pointsN):
-    w, m_conv, n_conv = myPlate.analysis(p0, N_new[i], M_MAX, N_MAX)
+    w, m_conv, n_conv = myPlate.analysisTogether(p0, N_new[i], E_MAX)
     W[i] = w(P_aval[0], P_aval[1])
 
 # Gráfico
@@ -239,7 +364,7 @@ plt.grid(b=True, which='minor', color='gray', linestyle='-', linewidth=0.1)
 plt.grid(b=True, which='major', color='gray', linestyle='-', linewidth=0.1)
 plt.minorticks_on()
 plt.savefig(figDirectory + '\\91_variacaoN.png')
-
+plt.close()
 # -------------------------- VARIAÇÃO DA RAZÃO A/B --------------------------
 print('Iniciando análise da variação da razão AB.')
 ab = np.linspace(ABstart, ABend, pointsAB)
@@ -249,7 +374,7 @@ for i in range(pointsAB):
     newb = np.sqrt(A0/ab[i])
     newa = A0/newb
     myPlate = plate(newa, newb, t, mat.Al6061)
-    w, m_conv, n_conv = myPlate.analysis(p0, N0, M_MAX, N_MAX)
+    w, m_conv, n_conv = myPlate.analysisTogether(p0, N0, E_MAX)
     W[i] = w(P_aval[0], P_aval[1])
 
 # Gráfico
@@ -261,6 +386,59 @@ plt.grid(b=True, which='minor', color='gray', linestyle='-', linewidth=0.1)
 plt.grid(b=True, which='major', color='gray', linestyle='-', linewidth=0.1)
 plt.minorticks_on()
 plt.savefig(figDirectory + '\\91_variacaoAB.png')
+plt.close()
+
+# ---------------- ANÁLISE PRINCIPAL DA DEFLEXÃO SEPARADA M -----------------
+print('AQUI')
+m_conv = np.zeros(shape=len(m_values))
+n_conv = np.zeros(shape=len(m_values))
+for i in range(len(m_values)):
+    name = '$m = ' + str(m_values[i]) + '$'
+    m = m_values[i]
+    w, m0, n0 = myPlate.analysisSepareted(p0, N0, E_MAX,
+                                          relError=5e-4,
+                                          converGraph=False,
+                                          printProcess=True,
+                                          typeOfAnalysis='m',
+                                          evaluationFixed=m)
+    m_conv[i] = m0
+    n_conv[i] = n0
+# Gráfico
+plt.figure('Conv_sepN')
+plt.plot(m_conv, n_conv, 'o', color='red')
+plt.grid(b=True, which='minor', color='gray', linestyle='-',
+         linewidth=0.1)
+plt.grid(b=True, which='major', color='gray', linestyle='-',
+         linewidth=0.1)
+plt.minorticks_on()
+plt.xlabel('$m_{máx}$')
+plt.ylabel('$n_{máx}$ para a convergência')
+
+# ---------------- ANÁLISE PRINCIPAL DA DEFLEXÃO SEPARADA n -----------------
+print('AQUI')
+m_conv = np.zeros(shape=len(n_values))
+n_conv = np.zeros(shape=len(n_values))
+for i in range(len(n_values)):
+    name = '$m = ' + str(m_values[i]) + '$'
+    n = n_values[i]
+    w, m0, n0 = myPlate.analysisSepareted(p0, N0, E_MAX,
+                                          relError=5e-7,
+                                          converGraph=False,
+                                          printProcess=True,
+                                          typeOfAnalysis='n',
+                                          evaluationFixed=n)
+    m_conv[i] = m0
+    n_conv[i] = n0
+# Gráfico
+plt.figure('Conv_sepM')
+plt.plot(m_conv, n_conv, 'o', color='red')
+plt.grid(b=True, which='minor', color='gray', linestyle='-',
+         linewidth=0.1)
+plt.grid(b=True, which='major', color='gray', linestyle='-',
+         linewidth=0.1)
+plt.minorticks_on()
+plt.xlabel('$n_{máx}$')
+plt.ylabel('$m_{máx}$ para a convergência')
 
 # ------------------------------- FINALIZAÇÃO -------------------------------
 plt.show()
