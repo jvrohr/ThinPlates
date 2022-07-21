@@ -286,13 +286,14 @@ colors = ['r', 'b', 'k', 'y', 'g']  # Cores para diferentes gráficos
 pointsAB = 101  # Quantidade de pontos para a análise da variação da razão AB
 ABstart = 0.1  # Valor inicial do intervalo de A/B para a análise
 ABend = 4  # Valor final do intervalo A/B para a análise
+erros = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]
 
 figDirectory = 'fig'  # Nome da pasta para salvar as imagens
 
 # ---------------------- ANÁLISE PRINCIPAL DA DEFLEXÃO ----------------------
 # Cria a placa e a pasta para salvas as figuras
-myPlate = plate(a, b, t, mat.Al6061)
 makeFolder(figDirectory)
+myPlate = plate(a, b, t, mat.Al6061)
 
 # Cria os pontos pro gráfico e analisa a placa de entrada
 X = np.linspace(0, a, xnum)
