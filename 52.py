@@ -103,31 +103,31 @@ class plate:
             """Função deslocamento transversal."""
             # Resolução principal do problema
             sum = 0
-            for m in np.array(range(int((m_max+1)/2)))*2 + 1:
-                for n in np.array(range(int((n_max+1)/2)))*2 + 1:
-                    num = np.sin(np.pi*m*x/self.a)*np.sin(np.pi*n*y/self.b)
-                    den = m*n*((m/self.a)**2 + (n/self.b)**2)**2
+            for m in np.array(range(int((m_max+1)/2)))*2 + 2:
+                for n in np.array(range(int((n_max+1)/2)))*2 + 2:
+                    Qmn = (p/np.pi)*(np.sin(np.pi*(m+1))/(m+1) - np.sin(np.pi*(m-1))/(m-1))*(np.sin(np.pi*(n+1))/(n+1) - np.sin(np.pi*(n-1))/(n-1))
+                    num = Qmn*np.sin(np.pi*m*x/self.a)*np.sin(np.pi*n*y/self.b)
+                    den = ((m/self.a)**2 + (n/self.b)**2)**2
                     sum += num/den
-            return sum*16*p/((np.pi**6)*self.D)
+            return sum/((np.pi**4)*self.D)
 
         def m(x, y):
-            sumx = 0
-            sumy = 0
-            sumxy = 0
-            for m in np.array(range(int((m_max+1)/2)))*2 + 1:
-                for n in np.array(range(int((n_max+1)/2)))*2 + 1:
-                    denxy = ((m/self.a)**2 + (n/self.b)**2)**2
-                    denx = m*n*denxy
-                    deny = denx
-                    numx = ((m/self.a)**2 + self.v*((n/self.b)**2))*np.sin(m*np.pi*x/self.a)*np.sin(n*np.pi*y/self.b)
-                    numy = (self.v*((m/self.a)**2) + (n/self.b)**2)*np.sin(m*np.pi*x/self.a)*np.sin(n*np.pi*y/self.b)
-                    numxy = np.cos(m*np.pi*x/self.a)*np.cos(n*np.pi*y/self.b)
-                    sumx += numx/denx
-                    sumy += numy/deny
-                    sumxy += numxy/denxy
-            mx = 16*p*sumx/(np.pi**4)
-            my = 16*p*sumy/(np.pi**4)
-            mxy = -16*p*(1-self.v)*sumxy/(self.a*self.b*(np.pi**4))
+            wsum = 0
+            wsum2 = 0
+            for m in np.array(range(int((m_max+1)/2)))*2 + 2:
+                for n in np.array(range(int((n_max+1)/2)))*2 + 2:
+                    Qmn = (p/np.pi)*(np.sin(np.pi*(m+1))/(m+1) - np.sin(np.pi*(m-1))/(m-1))*(np.sin(np.pi*(n+1))/(n+1) - np.sin(np.pi*(n-1))/(n-1))
+                    wnum = Qmn*np.sin(np.pi*m*x/self.a)*np.sin(np.pi*n*y/self.b)
+                    wnum2 = Qmn*np.cos(np.pi*m*x/self.a)*np.cos(np.pi*n*y/self.b)
+                    wden = (np.pi**4)*self.D*((m/self.a)**2 + (n/self.b)**2)**2
+                    wsum2 += wnum2/wden
+                    wsum += wnum/wden
+            d2wdx2 = -(np.pi*m/self.a)**2*wsum
+            d2wdy2 = -(np.pi*n/self.b)**2*wsum
+            d2wdxy = np.pi**2*n*m*wsum2/(self.a*self.b)
+            mx = -self.D*(d2wdx2 + self.v*d2wdy2)
+            my = -self.D*(d2wdy2 + self.v*d2wdx2)
+            mxy = -self.D*(1-self.v)*d2wdxy
             return mx, my, mxy
 
         def Q(x, y, m_f):
@@ -185,7 +185,7 @@ M_MAX = 100  # Número máximo de avaliações de m para a convergência
 N_MAX = 100  # Número máximo de avaliações de n para a convergência
 P_aval = [x1, y1]  # Ponto para avaliar as deflexões (convergência e outros)
 
-ex_num = '51'
+ex_num = '52'
 figDirectory = 'fig' + ex_num  # Nome da pasta para salvar as imagens
 
 # ---------------------- ANÁLISE PRINCIPAL DA DEFLEXÃO ----------------------
@@ -200,7 +200,7 @@ w, m_conv, n_conv = myPlate.convAnalysisTogether(p, max_evaluation=100, converGr
                      converGraphName='Convergencia',
                      converGraphLegend=None)
 
-plt.savefig(figDirectory + '\\51_convergencia.png')
+plt.savefig(figDirectory + '\\52_convergencia.png')
 m = myPlate.functionAnalysis(p, m_conv, n_conv, 'm')
 Q = myPlate.functionAnalysis(p, m_conv, n_conv, 'Q')
 R = myPlate.functionAnalysis(p, m_conv, n_conv, 'R')
@@ -228,10 +228,7 @@ Qy = np.ndarray(shape=(xnum, ynum), dtype=float, order='F')
 print('\tCalculando Deflexoes, Momentos e Esforcos Cortantes.')
 for i in range(xnum):
     for j in range(ynum):
-        if i == 0 or j == 0 or i == xnum-1 or j == ynum-1:
-            P[i][j] = 0
-        else:
-            P[i][j] = p
+        P[i][j] = p*sin(np.pi*X[i][j]/a)*sin(np.pi*Y[i][j]/b)
         Z[i][j] = w(X[i][j], Y[i][j])
         Mx[i][j], My[i][j], Mxy[i][j] = m(X[i][j], Y[i][j])
         Qx[i][j], Qy[i][j] = Q(X[i][j], Y[i][j], m)
@@ -251,7 +248,7 @@ surf = ax.plot_surface(X, Y, 1e3*Z, cmap=cm.coolwarm, linewidth=0,
 plt.xlabel('Eixo x [m]')
 plt.ylabel('Eixo y [m]')
 ax.set_zlabel('Deflexão z [mm]')
-plt.savefig(figDirectory + '\\51_deflexao3D.png')
+plt.savefig(figDirectory + '\\52_deflexao3D.png')
 
 # Gráficos Momentos 3D
 # Plot de Mx
@@ -280,7 +277,7 @@ plt.ylabel('Eixo y [m]')
 ax.set_zlabel(r'$M_{xy}$ [Nm]')
 ax.set_title(r'$M_{xy}$')
 
-plt.savefig(figDirectory + '\\51_Momentos.png')
+plt.savefig(figDirectory + '\\52_Momentos.png')
 
 # Gráficos Momentos 3D
 # Plot de Qx
@@ -301,15 +298,15 @@ plt.ylabel('Eixo y [m]')
 ax.set_zlabel(r'$Q_y$ [N/m]')
 ax.set_title(r'$Q_y$')
 
-plt.savefig(figDirectory + '\\51_Cortante.png')
+plt.savefig(figDirectory + '\\52_Cortante.png')
 
 # Gráfico Forças em 3D
 fig = plt.figure('Forcas3D')
 ax = fig.gca(projection='3d')
 surf = ax.plot_surface(X, Y, 0*Z, cmap=cm.coolwarm, linewidth=0,
                        antialiased=True)
-#surf = ax.plot_surface(X, Y, P, cmap=cm.coolwarm, linewidth=0,
-#                       antialiased=True, alpha = 0.7)
+surf = ax.plot_surface(X, Y, P, cmap=cm.coolwarm, linewidth=0,
+                       antialiased=True, alpha = 0.7)
 X = np.linspace(0, a, xnum+2)
 X_rx = [np.full((ynum+2,1), 0).reshape(-1), np.full((ynum+2,1), a).reshape(-1)]
 Y = np.linspace(0, b, ynum+2)
@@ -339,7 +336,7 @@ for i in range(4):
 plt.xlabel('Eixo x [m]')
 plt.ylabel('Eixo y [m]')
 ax.set_zlabel('Forças [N]')
-plt.savefig(figDirectory + '\\51_deflexao3D.png')
+plt.savefig(figDirectory + '\\52_deflexao3D.png')
 
 # ------------------------------- FINALIZAÇÃO -------------------------------
 plt.show()

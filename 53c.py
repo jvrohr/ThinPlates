@@ -24,7 +24,7 @@ class plate:
         self.D = (material.E*t**3)/(12*(1-material.v**2))
         print('D = {}'.format(self.D))
 
-    def convAnalysisTogether(self, p0, max_evaluation=100, converGraph=False,
+    def convAnalysisTogether(self, p0, area, max_evaluation=100, converGraph=False,
                          relError=5e-2, pointType='center',
                          evaluationPoint=[0, 0], printProcess=False,
                          folderName='fig', converGraphColor='b',
@@ -43,7 +43,7 @@ class plate:
 
         wEval = np.ndarray(shape=max_evaluation+1, dtype=float)
 
-        w = self.functionAnalysis(p0, 1, 1, 'w')
+        w = self.functionAnalysis(p0, area, 1, 1, 'w')
         wEval[0] = w(p[0], p[1])
         error = np.ndarray(shape=max_evaluation)
 
@@ -56,7 +56,7 @@ class plate:
             print('Nov aval: {:7.4}'.format((wEval[0])), end='')
             print(' Aval ant:    -    Erro:     -')
         for e_MAX in mn_values[1:-1]:
-            w = self.functionAnalysis(p0, e_MAX, e_MAX, 'w')
+            w = self.functionAnalysis(p0, area, e_MAX, e_MAX, 'w')
             wEval[k] = w(p[0], p[1])
             error[k-1] = abs((wEval[k] - wEval[k-1])/wEval[k-1])
             if printProcess:
@@ -94,9 +94,9 @@ class plate:
                      linewidth=0.1)
             plt.minorticks_on()
 
-        return self.functionAnalysis(p0, e_MAX, e_MAX, 'w'), e_MAX, e_MAX
+        return self.functionAnalysis(p0, area, e_MAX, e_MAX, 'w'), e_MAX, e_MAX
 
-    def functionAnalysis(self, p, m_max, n_max, interestFunction):
+    def functionAnalysis(self, p, area, m_max, n_max, interestFunction):
         """Cria uma função para analisar a deflexção para dada condição."""
 
         def w(x, y):
@@ -105,29 +105,30 @@ class plate:
             sum = 0
             for m in np.array(range(int((m_max+1)/2)))*2 + 1:
                 for n in np.array(range(int((n_max+1)/2)))*2 + 1:
-                    num = np.sin(np.pi*m*x/self.a)*np.sin(np.pi*n*y/self.b)
-                    den = m*n*((m/self.a)**2 + (n/self.b)**2)**2
+                    Qmn = 4*p*np.sin(m*np.pi*area[0]/self.a)*np.sin(n*np.pi*area[1]/self.b)/(self.a*self.b)
+                    num = Qmn*np.sin(np.pi*m*x/self.a)*np.sin(np.pi*n*y/self.b)
+                    den = ((m/self.a)**2 + (n/self.b)**2)**2
                     sum += num/den
-            return sum*16*p/((np.pi**6)*self.D)
+            return sum/((np.pi**4)*self.D)
 
         def m(x, y):
-            sumx = 0
-            sumy = 0
-            sumxy = 0
+            wsum = 0
+            wsum2 = 0
             for m in np.array(range(int((m_max+1)/2)))*2 + 1:
                 for n in np.array(range(int((n_max+1)/2)))*2 + 1:
-                    denxy = ((m/self.a)**2 + (n/self.b)**2)**2
-                    denx = m*n*denxy
-                    deny = denx
-                    numx = ((m/self.a)**2 + self.v*((n/self.b)**2))*np.sin(m*np.pi*x/self.a)*np.sin(n*np.pi*y/self.b)
-                    numy = (self.v*((m/self.a)**2) + (n/self.b)**2)*np.sin(m*np.pi*x/self.a)*np.sin(n*np.pi*y/self.b)
-                    numxy = np.cos(m*np.pi*x/self.a)*np.cos(n*np.pi*y/self.b)
-                    sumx += numx/denx
-                    sumy += numy/deny
-                    sumxy += numxy/denxy
-            mx = 16*p*sumx/(np.pi**4)
-            my = 16*p*sumy/(np.pi**4)
-            mxy = -16*p*(1-self.v)*sumxy/(self.a*self.b*(np.pi**4))
+                    Qmn = 4*p*np.sin(m*np.pi*area[0]/self.a)*np.sin(n*np.pi*area[1]/self.b)/(self.a*self.b)
+                    wnum = Qmn*np.sin(np.pi*m*x/self.a)*np.sin(np.pi*n*y/self.b)
+                    wnum2 = Qmn*np.cos(np.pi*m*x/self.a)*np.cos(np.pi*n*y/self.b)
+                    wden = (np.pi**4)*self.D*((m/self.a)**2 + (n/self.b)**2)**2
+                    wsum += wnum/wden
+                    wsum2 += wnum2/wden
+
+            d2wdx2 = -(np.pi*m/self.a)**2*wsum
+            d2wdy2 = -(np.pi*n/self.b)**2*wsum
+            d2wdxy = np.pi**2*n*m*wsum/(self.a*self.b)
+            mx = -self.D*(d2wdx2 + self.v*d2wdy2)
+            my = -self.D*(d2wdy2 + self.v*d2wdx2)
+            mxy = -self.D*(1-self.v)*d2wdxy
             return mx, my, mxy
 
         def Q(x, y, m_f):
@@ -170,22 +171,22 @@ def makeFolder(name):
 
 
 # ---------------------- CONSTANTES GERAIS DO PROBLEMA ----------------------
-a = 1  # [m] Tamanho da placa em x
-b = 1  # [m] Tamanho da placa em y
+a = 0.6  # [m] Tamanho da placa em x
+b = 0.6  # [m] Tamanho da placa em y
 t = 0.01  # [m] Espessura da placa
-p = 1e3 # Carga distribuída p(x, y)
+p = 5e3 # Carga distribuída p(x, y)
 x1 = a/2 # [m] Posição em x do centro da área de aplicação da carga
 y1 = b/2 # [m] Posição em y do centro da área de aplicação da carga
-c = a  # [m] Largura (em x) da área de aplicação da carga
-d = b  # [m] Comprimento (em y) da área de aplicação da carga
-p_area = [x1, y1, c, d] # Área de aplicação da carga distribuída
+c = 0  # [m] Largura (em x) da área de aplicação da carga
+d = 0  # [m] Comprimento (em y) da área de aplicação da carga
+area = [x1, y1, c, d] # Área de aplicação da carga distribuída
 xnum = 100  # Quantidade de pontos em x
 ynum = 100  # Quantidade de pontos em y
 M_MAX = 100  # Número máximo de avaliações de m para a convergência
 N_MAX = 100  # Número máximo de avaliações de n para a convergência
 P_aval = [x1, y1]  # Ponto para avaliar as deflexões (convergência e outros)
 
-ex_num = '51'
+ex_num = '53c'
 figDirectory = 'fig' + ex_num  # Nome da pasta para salvar as imagens
 
 # ---------------------- ANÁLISE PRINCIPAL DA DEFLEXÃO ----------------------
@@ -193,17 +194,17 @@ figDirectory = 'fig' + ex_num  # Nome da pasta para salvar as imagens
 myPlate = plate(a, b, t, mat.mat_exemplos5)
 makeFolder(figDirectory)
 
-w, m_conv, n_conv = myPlate.convAnalysisTogether(p, max_evaluation=100, converGraph=True,
-                     relError=5e-2, pointType='center',
+w, m_conv, n_conv = myPlate.convAnalysisTogether(p, area, max_evaluation=100, converGraph=True,
+                     relError=5e-2, pointType='other',
                      evaluationPoint=P_aval, printProcess=True,
                      folderName=figDirectory, converGraphColor='b',
                      converGraphName='Convergencia',
                      converGraphLegend=None)
 
-plt.savefig(figDirectory + '\\51_convergencia.png')
-m = myPlate.functionAnalysis(p, m_conv, n_conv, 'm')
-Q = myPlate.functionAnalysis(p, m_conv, n_conv, 'Q')
-R = myPlate.functionAnalysis(p, m_conv, n_conv, 'R')
+plt.savefig(figDirectory + '\\53c_convergencia.png')
+m = myPlate.functionAnalysis(p, area, m_conv, n_conv, 'm')
+Q = myPlate.functionAnalysis(p, area, m_conv, n_conv, 'Q')
+R = myPlate.functionAnalysis(p, area, m_conv, n_conv, 'R')
 
 # Cria os pontos pro gráfico e analisa a placa de entrada
 X = np.linspace(0, a, xnum)
@@ -237,11 +238,11 @@ for i in range(xnum):
         Qx[i][j], Qy[i][j] = Q(X[i][j], Y[i][j], m)
 
 print("\n\nValores máximos:")
-print('\tMomentos:\tMx = {} Nm\tMy = {} Nm\tMxy = {} Nm'.format(np.max(Mx),
-        np.max(My), np.max(Mxy)))
-print('\tCortantes:\tQx = {} N/m\tQy = {} N/m'.format(np.max(Qx),
-        np.max(Qy)))
-print('\tDeflexão:\tw = {} mm'.format(np.max(Z)*1e3))
+print('\tMomentos:\tMx = {} Nm\tMy = {} Nm\tMxy = {} Nm'.format(np.max(abs(Mx)),
+        np.max(abs(My)), np.max(abs(Mxy))))
+print('\tCortantes:\tQx = {} N/m\tQy = {} N/m'.format(np.max(abs(Qx)),
+        np.max(abs(Qy))))
+print('\tDeflexão:\tw = {} mm'.format(np.max(abs(Z))*1e3))
 
 # Gráfico Deflexão 3D
 fig = plt.figure('Plot3D')
@@ -251,7 +252,7 @@ surf = ax.plot_surface(X, Y, 1e3*Z, cmap=cm.coolwarm, linewidth=0,
 plt.xlabel('Eixo x [m]')
 plt.ylabel('Eixo y [m]')
 ax.set_zlabel('Deflexão z [mm]')
-plt.savefig(figDirectory + '\\51_deflexao3D.png')
+plt.savefig(figDirectory + '\\53c_deflexao3D.png')
 
 # Gráficos Momentos 3D
 # Plot de Mx
@@ -280,7 +281,7 @@ plt.ylabel('Eixo y [m]')
 ax.set_zlabel(r'$M_{xy}$ [Nm]')
 ax.set_title(r'$M_{xy}$')
 
-plt.savefig(figDirectory + '\\51_Momentos.png')
+plt.savefig(figDirectory + '\\53c_Momentos.png')
 
 # Gráficos Momentos 3D
 # Plot de Qx
@@ -301,7 +302,7 @@ plt.ylabel('Eixo y [m]')
 ax.set_zlabel(r'$Q_y$ [N/m]')
 ax.set_title(r'$Q_y$')
 
-plt.savefig(figDirectory + '\\51_Cortante.png')
+plt.savefig(figDirectory + '\\53c_Cortante.png')
 
 # Gráfico Forças em 3D
 fig = plt.figure('Forcas3D')
@@ -339,7 +340,7 @@ for i in range(4):
 plt.xlabel('Eixo x [m]')
 plt.ylabel('Eixo y [m]')
 ax.set_zlabel('Forças [N]')
-plt.savefig(figDirectory + '\\51_deflexao3D.png')
+plt.savefig(figDirectory + '\\53c_deflexao3D.png')
 
 # ------------------------------- FINALIZAÇÃO -------------------------------
 plt.show()
