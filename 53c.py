@@ -340,7 +340,7 @@ for i in range(4):
 plt.xlabel('Eixo x [m]')
 plt.ylabel('Eixo y [m]')
 ax.set_zlabel('Forças [N]')
-plt.savefig(figDirectory + '\\53c_deflexao3D.png')
+plt.savefig(figDirectory + '\\53c_forcas3D.png')
 
 # ------------------------------- FINALIZAÇÃO -------------------------------
 plt.show()
