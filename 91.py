@@ -265,28 +265,28 @@ def makeFolder(name):
 
 
 # ---------------------- CONSTANTES GERAIS DO PROBLEMA ----------------------
-a = 1  # [m] Tamanho da placa em x
-b = 1  # [m] Tamanho da placa em y
+a = 2  # [m] Tamanho da placa em x
+b = 2  # [m] Tamanho da placa em y
 t = 0.01  # [m] Espessura da placa
-p0 = 400e3  # [N/m²] Carga transversal distribuída sob a placa
-N0 = 500e3  # [N/m] Carga lateral distribuída sob a placa
+p0 = 40e3  # [N/m²] Carga transversal distribuída sob a placa
+N0 = 100e3  # [N/m] Carga lateral distribuída sob a placa
 xnum = 100  # Quantidade de pontos em x
 ynum = 100  # Quantidade de pontos em y
-E_MAX = 100  # Número máximo de avaliações de m e n para a convergência
+E_MAX = 112  # Número máximo de avaliações de m e n para a convergência
 P_aval = [a/2, b/2]  # Ponto para avaliar as deflexões (convergência e outros)
 m_values = [1, 3, 5, 7, 9, 11, 13, 15]
 n_values = [1, 3, 5, 7, 9, 11, 13, 15]
 
 pointsN = 100  # Quantidade de pontos para a análise da variação de N
-Nstart = -1e6  # Valor inicial do intervalo de N para a análise
-Nend = 1e6  # Valor final do intervalo de N para a análise
+Nstart = -50e3  # Valor inicial do intervalo de N para a análise
+Nend = 180e3  # Valor final do intervalo de N para a análise
 Npor = [0.8, 0.9, 1, 1.1, 1.2]  # Proporções de N para a análise na conv.
 colors = ['r', 'b', 'k', 'y', 'g']  # Cores para diferentes gráficos
 
 pointsAB = 101  # Quantidade de pontos para a análise da variação da razão AB
 ABstart = 0.1  # Valor inicial do intervalo de A/B para a análise
 ABend = 4  # Valor final do intervalo A/B para a análise
-erros = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9]
+erros = [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8]
 
 figDirectory = 'fig'  # Nome da pasta para salvar as imagens
 
