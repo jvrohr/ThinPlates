@@ -17,7 +17,7 @@ class plate:
         self.a = a
         self.b = b
         self.t = t
-        self.D = (material.E*t**3)/(1*(1-material.v**2))
+        self.D = (material.E*t**3)/(12*(1-material.v**2))
 
     def analysisTogether(self, p0, N, max_evaluation=100, converGraph=False,
                          relError=5e-2, pointType='center',
